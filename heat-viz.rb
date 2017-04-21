@@ -60,8 +60,7 @@ def load_data(file, filter)
 
   fdata = fdata[lang.resources].find_all {|item|
     case item[1][lang.type]
-    when /OS::Heat::Structured/ then true
-    when /OS::Nova::Server/ then true
+    when /OS::/ then true
     else false
     end
   }
@@ -85,11 +84,20 @@ def load_data(file, filter)
       end
     when /config/i
       node[:shape] = 'oval'
-      if config["completion-signal"] != nil
-        node[:peripheries] = 2
+      begin
+        unless config["completion-signal"].nil?
+          node[:peripheries] = 2
+        end
+      rescue
       end
-    when /server/i then 'box3d'
-    else abort 'Unexpected type'
+    when /value|data|MultipartMime|None/i then 'parallelogram'
+    when /server|node/i then 'box3d'
+    when /network|neutron|port/i then 'egg'
+    when /pre|post|step/i then 'diamond'
+    when /storage|volume|mount/i then 'cylinder'
+    when /tripleo/i then 'tripleoctagon'
+    else
+      puts 'Unexpected type'
     end
 
     deps = item[1][lang.depends_on] || []
@@ -110,7 +118,6 @@ def load_data(file, filter)
     src_node = g.get(src)
     dst_node = g.get(dst)
     if filter.match(src).nil? or filter.match(dst).nil?
-      puts "Filter out #{src}/#{dst} as non matching"
       next
     end
     if src_node == nil
@@ -122,16 +129,6 @@ def load_data(file, filter)
     end
     g.add GEdge[src_node, dst_node]
   }
-
-  #g.nodes.each {|node|
-  #  # Hack - remove anything with 1 in it because it's a scaled thing
-  #  if node.key =~ /[1-9]/
-  #    g.cut node
-  #  end
-
-  #  # TODO Drop unconnected nodes from graph
-  #  not neighbors(node).empty? or g.cut node
-  #}
 
   g
 end
