@@ -11,6 +11,8 @@ The diagram is produced dynamically with viz.js (https://github.com/mdaines/viz.
 Both CFN and HOT format are handled but the dependency detection is very simple.
 It does not handle resource groups or autoscaling at all.
 
+Or run ``./heat-viz-prep.sh`` to get things done (works only for t-h-t).
+
 Requirements
 ------------
 
