@@ -5,8 +5,8 @@ set -ue -o pipefail
 # Default repo paths, filter and decor for graphs
 HEAT_VIZ_PATH=${HEAT_VIZ_PATH:-none}
 THT_PATH=${THT_PATH:-none}
-FILTER=${FILTER:-'.*'}
-DECOR=${DECOR:-'pre[^p],post,batch,prep,step1,step2,step3,step4,step5,step6,upgrade,docker'}
+DECOR=${DECOR:-'pre[^p],post,batch,prep,step1,step2,step3,step4,step5,step6,upgrade,docker,compute,storage'}
+COPYALL=${COPYALL:-false}
 
 # Clone or prepare repos
 if [[ "${THT_PATH}" =~ "http:" ]]; then
@@ -31,23 +31,43 @@ else
   HEAT_VIZ_PATH=$(pwd)/heat-viz
 fi
 
-# Generate overcloud/undercloud templates
 mkdir -p ${HEAT_VIZ_PATH}/{undercloud,overcloud}
 cd ${THT_PATH}
+if [ "${COPYALL}" != "false" ]; then
+  # Copy existing templates and use merge mode
+  MERGE=yes
+  FILTER=${FILTER:-'Pre|Post|Upgrade|Deployment|Step'}
+  rsync -avxHR --exclude="*.j2.*" --exclude="services" --exclude="services-docker" \
+    --exclude "*storage*" \
+    --exclude "*compute*" \
+    --exclude "*controller*" \
+    {environments,extraconfig,docker,puppet,deployed-server} ${HEAT_VIZ_PATH}/undercloud/
+  rsync -avxHR --exclude="*.j2.*" --exclude="services" --exclude="services-docker" \
+    --exclude "*undercloud*" \
+    {environments,extraconfig,docker,puppet,deployed-server} ${HEAT_VIZ_PATH}/overcloud/
+else
+  MERGE=no
+  FILTER=${FILTER:-'.*'}
+fi
+# Generate overcloud/undercloud templates
 # w/a -o doesn't work
 python ./tools/process-templates.py -r roles_data.yaml
 git ls-files -o --exclude-standard | xargs -n1 -I {} rsync -avxHR {} ${HEAT_VIZ_PATH}/overcloud/
-git clean -fd
 python ./tools/process-templates.py -r roles_data_undercloud.yaml
 git ls-files -o --exclude-standard | xargs -n1 -I {} rsync -avxHR {} ${HEAT_VIZ_PATH}/undercloud/
-git clean -fd
 
 # Generate graphs
 cd ${HEAT_VIZ_PATH}
 set +e
-for f in $(git ls-files -o --exclude-standard); do
-  echo "####### Processing ${f} #######"
-  prefix=$(echo $(dirname ${f}) | sed "s#/#_#g")
-  fname="${prefix}_$(basename ${f})"
-  ruby heat-viz.rb -f "${FILTER}" -d "${DECOR}" ${f} -o ${fname%.yaml}.html
-done
+if [ "${MERGE}" = "yes" ]; then
+  ruby heat-viz.rb -m undercloud -f "${FILTER}" -d "${DECOR}" -o undercloud.html
+  ruby heat-viz.rb -m overcloud -f "${FILTER}" -d "${DECOR}" -o overcloud.html
+else
+  for f in $(git ls-files -o --exclude-standard); do
+    [[ "${f}" =~ "yaml" ]] || continue
+    echo "####### Processing ${f} #######"
+    prefix=$(echo $(dirname ${f}) | sed "s#/#_#g")
+    fname="${prefix}_$(basename ${f})"
+    ruby heat-viz.rb -f "${FILTER}" -d "${DECOR}" ${f} -o ${fname%.yaml}.html
+  done
+fi
