@@ -47,7 +47,7 @@ def get_lang(data)
   elsif not LANG_HOT.version.match(data["heat_template_version"]).nil?
     LANG_HOT
   else
-    abort("Unrecognised HeatTemplateFormatVersion: #{version}")
+    abort("Unrecognised HeatTemplateFormatVersion")
   end
 end
 
@@ -72,8 +72,8 @@ def load_data(file, filter)
   fdata.each {|item|
     key = item[0]
     node = g.get_or_make(key)
-    properties = item[1][lang.properties]
-    config = properties["config"]
+    properties = item[1][lang.properties] rescue {}
+    config = properties["config"] rescue {}
 
     type = item[1][lang.type]
     case type
@@ -83,7 +83,7 @@ def load_data(file, filter)
         node[:peripheries] = 2
       end
     when /config/i
-      node[:shape] = 'oval'
+      node[:shape] = 'note'
       begin
         unless config["completion-signal"].nil?
           node[:peripheries] = 2
@@ -93,19 +93,20 @@ def load_data(file, filter)
     when /value|data|MultipartMime|None/i then 'parallelogram'
     when /server|node/i then 'box3d'
     when /network|neutron|port/i then 'egg'
-    when /pre|post|step/i then 'diamond'
+    when /pre|post|step|update|upgrade/i then 'diamond'
     when /storage|volume|mount/i then 'cylinder'
+    when /artifact|package/i then 'folder'
     when /tripleo/i then 'tripleoctagon'
     else
       puts 'Unexpected type'
     end
 
-    deps = item[1][lang.depends_on] || []
+    deps = [item[1][lang.depends_on]].flatten || []
     deps.each() {|dep|
       es.push [key, dep]
     }
 
-    if config
+    if not config.nil? and not config.empty?
       ref = config[lang.get_resource]
       if ref
         es.push [ref, key]
