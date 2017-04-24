@@ -19,7 +19,7 @@ Requirements
 #TODO(bogdando) this should be somehow packaged/bundled/given a version ranges
 * packages (RHEL/Centos): ncurses-devel, ncurses
 * packages (Debian/Ubuntu): libncurses5-dev, libncursesw5-dev
-* gems: curses, executable-hooks, gem-wrappers, mustache, json
+* gems: curses, executable-hooks, gem-wrappers, mustache, json, deep_merge
 
 Use with TripleO Heat Templates
 -------------------------------
@@ -32,6 +32,10 @@ Use with TripleO Heat Templates
 ```
 * Copy YAML templates under the heat-viz repo root
 * Run ``ruby heat-viz.rb`` for a given template/filter/decors of your choice
+* Alternatively, run it with merge mode ``-m undercloud`` or ``-m overcloud``.
+  This depicts the whole picture, as if all of the templates' resources belonged
+  to a single heat template.
+#TODO(bogdando) nested stacks to be included and processed for merge mode
 
 Filters
 -------

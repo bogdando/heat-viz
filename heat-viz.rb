@@ -9,7 +9,9 @@ require 'fileutils'
 require 'optparse'
 require 'ostruct'
 require 'pp'
-
+require 'find'
+require 'pry'
+require 'deep_merge'
 
 ########## TEMPLATE FORMAT #############
 
@@ -54,8 +56,7 @@ end
 
 ########## LOAD DATA #############
 
-def load_data(file, filter)
-  fdata = YAML.load(file)
+def load_data(fdata, filter)
   lang = get_lang(fdata)
 
   fdata = fdata[lang.resources].find_all {|item|
@@ -218,6 +219,7 @@ options = OpenStruct.new
 options.format = :hot
 options.output_filename = "heat-deps.html"
 OptionParser.new do |o|
+  options.merge = false
   options.filter = /.*/
   options.decors = ['compute', 'controller', 'storage']
   o.banner = "Usage: heat-viz.rb [options] heat.yaml"
@@ -230,24 +232,43 @@ OptionParser.new do |o|
   o.on("-d", "--decors [FOO,BAR]", "Tags (steps/roles) for palete") do |decors|
     options.decors = decors.split(',')
   end
+  o.on("-m", "--merge [overcloud,undercloud]", "Merge all resources") do |merge|
+    options.merge = merge
+  end
   o.on_tail("-h", "--help", "Show this message") do
     puts o
     exit
   end
 end.parse!
-if ARGV.length != 1
+if ARGV.length != 1 and not options.merge
   abort("Must provide a Heat template")
-end
-options.input_filename = ARGV.shift
-
-if !File.file? options.input_filename
-  raise "Not a file: #{options.input_filename}"
 end
 
 graph = nil
-File.open(options.input_filename) {|file|
-  graph = load_data(file, options.filter)
-}
+unless ['overcloud','undercloud'].include? options.merge
+  options.input_filename = ARGV.shift
 
+  if !File.file? options.input_filename
+    raise "Not a file: #{options.input_filename}"
+  end
+  data = YAML.load_file(options.input_filename)
+else
+  data = {
+    "heat_template_version" => "ocata",
+    "description" => "A merged template",
+    "resources" => {}
+  }
+  files = []
+  Find.find(options.merge) do |path|
+    files << path if path =~ /.*\.yaml$/
+  end
+  files.each do |f|
+    puts "Merge template #{f}"
+    g = YAML.load_file(f)
+    data.deep_merge!(g)
+  end
+end
+
+graph = load_data(data, options.filter)
 graph = decorate(graph, nil, options.decors)
 write(graph, options.output_filename)
