@@ -61,7 +61,7 @@ def load_data(fdata, filter)
 
   fdata = fdata[lang.resources].find_all {|item|
     case item[1][lang.type]
-    when /OS::/ then true
+    when /OS::|Legend::/ then true
     else false
     end
   }
@@ -91,13 +91,20 @@ def load_data(fdata, filter)
         end
       rescue
       end
-    when /value|data|MultipartMime|None/i then 'parallelogram'
-    when /server|node/i then 'box3d'
-    when /network|neutron|port/i then 'egg'
-    when /pre|post|step|update|upgrade/i then 'diamond'
-    when /storage|volume|mount/i then 'cylinder'
-    when /artifact|package/i then 'folder'
-    when /tripleo/i then 'tripleoctagon'
+    when /value|data|MultipartMime|None/i
+      node[:shape] = 'parallelogram'
+    when /server|node/i
+      node[:shape] = 'box3d'
+    when /network|neutron|port|vip/i
+      node[:shape] = 'egg'
+    when /pre|post|step|update|upgrade/i
+      node[:shape] = 'diamond'
+    when /storage|volume|mount/i
+      node[:shape] = 'octagon'
+    when /artifact|package/i
+      node[:shape] = 'folder'
+    when /tripleo/i
+      node[:shape] = 'tripleoctagon'
     else
       puts 'Unexpected type'
     end
@@ -181,6 +188,9 @@ def decorate(graph, tag=nil, decors)
     if edge.snode[:shape] == 'box' and edge.dnode[:shape] == 'box'
       edge[:penwidth] = 2.0
     end
+    if edge.snode[:shape] == 'note' and edge.dnode[:shape] == 'box'
+      edge[:style] = "dotted"
+    end
   }
 
   graph
@@ -256,7 +266,35 @@ else
   data = {
     "heat_template_version" => "ocata",
     "description" => "A merged template",
-    "resources" => {}
+    "resources" => {
+      "A deployment" => {
+        "type" => "Legend::Deployment",
+        "properties" => {"signal_transport" => "foo"},
+        "depends_on" => "A config"},
+      "A config" => {
+        "type" => "Legend::Config",
+        "depends_on" => "A value|data|MultipartMime|None"},
+      "A value|data|MultipartMime|None" => {
+        "type" => "Legend::Value",
+        "depends_on" => "A server|node"},
+      "A server|node" => {
+        "type" => "Legend::Server",
+        "depends_on" => "A network|neutron|port|vip"},
+      "A network|neutron|port|vip" => {
+        "type" => "Legend::Network",
+        "depends_on" => "A pre|post|step|update|upgrade"},
+      "A pre|post|step|update|upgrade" => {
+        "type" => "Legend::Step",
+        "depends_on" => "A storage|volume|mount"},
+      "A storage|volume|mount" => {
+        "type" => "Legend::Storage",
+        "depends_on" => "A tripleo"},
+      "A tripleo" => {
+        "type" => "Legend::Tripleo",
+        "depends_on" => "An artifact|package"},
+      "An artifact|package" => {
+        "type" => "Legend::Artifact"}
+    }
   }
   files = []
   Find.find(options.merge) do |path|

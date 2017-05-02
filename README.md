@@ -11,7 +11,7 @@ The diagram is produced dynamically with viz.js (https://github.com/mdaines/viz.
 Both CFN and HOT format are handled but the dependency detection is very simple.
 It does not handle resource groups or autoscaling at all.
 
-Or run ``./heat-viz-prep.sh`` to get things done (works only for t-h-t).
+Or run ``./heat-viz-prep.sh`` to just get things done (works only for t-h-t).
 
 Requirements
 ------------
@@ -54,7 +54,7 @@ decors:
 
 * swift,ceph,block
 * puppet,docker,kolla
-* prep,pre[^p],post,batch,upgrade,step1,step2,step3,step4,step5,step6
-* controller,compute,storage
+* prep,pre[^p],post,batch,upgrade,update,step1,step2,step3,step4,step5,step6
+* controller,compute,storage,allnodes
 
 The latter provides the default color scheme.

@@ -5,8 +5,8 @@ set -ue -o pipefail
 # Default repo paths, filter and decor for graphs
 HEAT_VIZ_PATH=${HEAT_VIZ_PATH:-none}
 THT_PATH=${THT_PATH:-none}
-DECOR=${DECOR:-'pre[^p],post,batch,prep,step1,step2,step3,step4,step5,step6,upgrade,docker,compute,storage'}
-COPYALL=${COPYALL:-false}
+DECOR=${DECOR:-'pre[^p],post,batch,prep,step1,step2,step3,step4,step5,step6,upgrade,update,docker,compute,storage,allnodes,A(n)?\s'}
+COPYALL=${COPYALL:-true}
 
 # Clone or prepare repos
 if [[ "${THT_PATH}" =~ "http:" ]]; then
@@ -33,10 +33,10 @@ fi
 
 mkdir -p ${HEAT_VIZ_PATH}/{undercloud,overcloud}
 cd ${THT_PATH}
-if [ "${COPYALL}" != "false" ]; then
+if [ "${COPYALL}" == "true" ]; then
   # Copy existing templates and use merge mode
   MERGE=yes
-  FILTER=${FILTER:-'Pre|Post|Upgrade|Deployment|Step'}
+  FILTER=${FILTER:-'Pre|Post|Upgrade|Update|Deployment|Step|Contr|AllNodes|A(n)?\s'}
   rsync -avxHR --exclude=".tox" --exclude=".git" --exclude="*.j2.*" --exclude="services" --exclude="services-docker" \
     --exclude "*storage*" \
     --exclude "*compute*" \
