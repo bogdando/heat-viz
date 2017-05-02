@@ -37,14 +37,14 @@ if [ "${COPYALL}" != "false" ]; then
   # Copy existing templates and use merge mode
   MERGE=yes
   FILTER=${FILTER:-'Pre|Post|Upgrade|Deployment|Step'}
-  rsync -avxHR --exclude="*.j2.*" --exclude="services" --exclude="services-docker" \
+  rsync -avxHR --exclude=".tox" --exclude=".git" --exclude="*.j2.*" --exclude="services" --exclude="services-docker" \
     --exclude "*storage*" \
     --exclude "*compute*" \
     --exclude "*controller*" \
-    {environments,extraconfig,docker,puppet,deployed-server} ${HEAT_VIZ_PATH}/undercloud/
-  rsync -avxHR --exclude="*.j2.*" --exclude="services" --exclude="services-docker" \
+    {./*.yaml,environments,extraconfig,docker,puppet,deployed-server} ${HEAT_VIZ_PATH}/undercloud/
+  rsync -avxHR --exclude=".tox" --exclude=".git" --exclude="*.j2.*" --exclude="services" --exclude="services-docker" \
     --exclude "*undercloud*" \
-    {environments,extraconfig,docker,puppet,deployed-server} ${HEAT_VIZ_PATH}/overcloud/
+    {./*.yaml,environments,extraconfig,docker,puppet,deployed-server} ${HEAT_VIZ_PATH}/overcloud/
 else
   MERGE=no
   FILTER=${FILTER:-'.*'}
